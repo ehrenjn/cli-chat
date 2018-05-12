@@ -117,7 +117,7 @@ clear_screen()
 while 1:
         if MODE == 'chat':
                 fetch_and_print(True)
-                new_msg = raw_input('> ')
+                new_msg = input('> ')
                 if new_msg != '':
                         parse_msg(new_msg)
         else:
