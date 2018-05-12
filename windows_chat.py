@@ -8,7 +8,7 @@ from base64 import b64encode, b64decode
 import json
 import time
 
-
+#Colors======================================
 COLORS = {
         'red': "\x1b[1;31m",
         'green': "\x1b[1;32m",
@@ -25,7 +25,7 @@ def color(string, color_string):
                 color_string = COLORS.get(color_string, STOP_COLOR)
         return color_string + string + STOP_COLOR
 
-
+#User Settings===============================
 CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.cli_chat_config')
 
 def get_headers():
@@ -44,6 +44,7 @@ def set_header(param_str):
         with open(CONFIG_FILE, 'w') as f:
                 f.write(json.dumps(HEADERS))
 
+#Commands====================================
 def switch_room(new_room):
         global ROOM
         ROOM = new_room
@@ -71,6 +72,7 @@ def parse_msg(msg):
                 requests.post("http://waksmemes.x10host.com/mess/?" + ROOM + '!post',
                                 json = payload)
 
+#Shell=======================================
 def parse_shell_args():
         mode = 'chat'
         room = "linusXD2"
@@ -82,6 +84,15 @@ def parse_shell_args():
                         room = arg
         return room, mode
 
+#Platform independance=======================
+def clear_screen():
+        os.system('cls') if sys.platform[:3] == 'win' else os.system('clear')
+
+if sys.version_info[0] < 3:
+        input = raw_input
+
+
+#Main========================================
 def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
         res = requests.post("http://waksmemes.x10host.com/mess/?" + ROOM,
                            json = {'MAX_MSGS': max_msgs, 'id': {'min': ids_after + 1}})
@@ -98,9 +109,6 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                 msg = b64decode(d.get('msg', '')).decode('utf-8')
                 print(color(name + ': ', name_color) + color(msg, TEXT_COLOR))
         return last_id
-
-def clear_screen():
-        os.system('cls') if sys.platform[:3] == 'win' else os.system('clear')
 
 
 ROOM, MODE = parse_shell_args()
