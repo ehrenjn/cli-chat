@@ -80,7 +80,7 @@ def parse_shell_args():
                         room = arg
         return room, mode
 
-def fetch_and_print(clear, ids_after = 0, max_msgs = 1000):
+def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
         res = requests.post("http://waksmemes.x10host.com/mess/?" + ROOM,
                            json = {'MAX_MSGS': max_msgs, 'id': {'min': ids_after + 1}})
         raw = res.content.decode('utf-8')
