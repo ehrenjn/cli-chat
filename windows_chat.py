@@ -24,7 +24,7 @@ def color(string, color_string):
         return color_string + string + STOP_COLOR
 
 
-CONFIG_FILE = __file__.rsplit('\\', 1)[0] + '\\.@work_config'
+CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.cli_chat_config')
 
 def get_headers():
         try:
@@ -45,11 +45,15 @@ def set_header(param_str):
 def switch_room(new_room):
         global ROOM
         ROOM = new_room
-                
+
+def enter_read_mode(_):
+        global MODE
+        MODE = 'read'
 
 CMDS = {
         '\\set': set_header,
-        '\\room': switch_room
+        '\\room': switch_room,
+        '\\read': enter_read_mode
         }
 def parse_msg(msg):
         if ' ' in msg:
@@ -61,7 +65,7 @@ def parse_msg(msg):
         else:
                 msg = b64encode(msg)
                 payload = HEADERS.copy()
-                payload['msg'] = msg
+                payload['msg'] = msg.decode('utf-8')
                 requests.post("http://waksmemes.x10host.com/mess/?" + ROOM + '!post',
                                 json = payload)
 
@@ -76,14 +80,14 @@ def parse_shell_args():
                         room = arg
         return room, mode
 
-def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
+def fetch_and_print(clear, ids_after = 0, max_msgs = 1000):
         res = requests.post("http://waksmemes.x10host.com/mess/?" + ROOM,
                            json = {'MAX_MSGS': max_msgs, 'id': {'min': ids_after + 1}})
         raw = res.content.decode('utf-8')
         data = json.loads(raw)
         data.reverse()
         if clear:
-                os.system('cls')
+                clear_screen()
         last_id = ids_after
         for d in data:
                 last_id = d['id']
@@ -92,12 +96,14 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                 msg = b64decode(d.get('msg', '')).decode('utf-8')
                 print(color(name + ': ', name_color) + color(msg, TEXT_COLOR))
         return last_id
-        
+
+def clear_screen():
+        os.system('cls') if sys.platform[:3] == 'win' else os.system('clear')
 
 
 ROOM, MODE = parse_shell_args()
 LAST_ID = 0
-os.system('cls')
+clear_screen()
 while 1:
         if MODE == 'chat':
                 fetch_and_print(True)
