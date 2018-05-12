@@ -66,7 +66,7 @@ def parse_msg(msg):
         if cmd in CMDS:
                 CMDS[cmd](arg)
         else:
-                msg = b64encode(msg)
+                msg = b64encode(bytes(msg, encoding = 'UTF-8'))
                 payload = HEADERS.copy()
                 payload['msg'] = msg.decode('utf-8')
                 requests.post("http://waksmemes.x10host.com/mess/?" + ROOM + '!post',
@@ -89,6 +89,7 @@ def clear_screen():
         os.system('cls') if sys.platform[:3] == 'win' else os.system('clear')
 
 if sys.version_info[0] < 3:
+        bytes = lambda s, encoding: s
         input = raw_input
 
 
