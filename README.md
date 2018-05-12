@@ -1,6 +1,6 @@
 # cli-chat
 A simple command line chat program for linux and windows written in python  
-Currently the windows client is written in python 2 whereas the linux client is written in python 3
+It runs on Window and Linux on both Python 2 and 3
 
 The messages are stored unencrypted on: http://waksmemes.x10host.com/mess/  
   
