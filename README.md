@@ -15,8 +15,8 @@ To start chatting in a chat room called "different_chat_room":
 ### Sending messages  
 After all a chat room's messages are printed a '> ' symbol is printed. This final line of text is called the _input line_.
 To send a message simply type your message on the input line and press enter.  
-If the user presses enter without typing a message, no message is sent
-If the user runs a command no message is sent
+If the user presses enter without typing a message, no message is sent.  
+Likewise, when a user issues a command, no message is sent.  
 
 ### Reading messages
 New messages are fetched every time the user presses enter on the input line, regardless of whether or not they sent a message  
