@@ -8,7 +8,6 @@ from base64 import b64encode, b64decode
 import json
 import time
 import datetime
-import pytz
 
 #Colors======================================
 COLORS = {
@@ -92,7 +91,7 @@ def errorless_print(string):
 
 def parse_shell_args():
         mode = 'chat'
-        room = "linusXD2"
+        room = "main"
         for arg in sys.argv[1:]:
                 if arg[0] == '-':
                         if arg == '-r':
@@ -123,8 +122,7 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
         for d in data:
                 last_id = d['id']
                 timestamp = d['time']
-                timestr = '[' + datetime.datetime.fromtimestamp(timestamp, 
-                        tz = pytz.timezone('US/Eastern')).strftime("%H:%M:%S") + '] '
+                timestr = '[' + datetime.datetime.fromtimestamp(timestamp).strftime("%H:%M") + '] '
                 settings = {}
                 if 'settings' in d:
                     raw_settings = b64decode(d['settings']).decode('utf-8')
