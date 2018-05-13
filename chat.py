@@ -4,9 +4,46 @@ import requests
 import sys
 import json
 import os
-from base64 import b64encode, b64decode
+import base64
+#from base64 import b64encode, b64decode
 import json
 import time
+
+import hashlib
+from Crypto import Random
+from Crypto.Cipher import AES
+
+#AES crypto==================================
+# basic class to provide AES cryptography, shamelessly ripped from stack exchange:
+# https://stackoverflow.com/questions/12524994/encrypt-decrypt-using-pycrypto-aes-256
+
+class AESCipher(object):
+
+    def __init__(self, key):
+        self.bs = 32
+        self.key = hashlib.sha256(key.encode()).digest()
+
+    def encrypt(self, raw):
+        raw = self._pad(raw)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return base64.b64encode(iv + cipher.encrypt(raw))
+
+    def decrypt(self, enc):
+        enc = base64.b64decode(enc)
+        iv = enc[:AES.block_size]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
+
+    def _pad(self, s):
+        return s + (self.bs - len(s) % self.bs) * chr(self.bs - len(s) % self.bs)
+
+    @staticmethod
+    def _unpad(s):
+        return s[:-ord(s[len(s)-1:])]
+
+key = "test_key"
+cipher = AESCipher(key)
 
 #Colors======================================
 COLORS = {
@@ -54,16 +91,16 @@ def enter_read_mode(_):
         MODE = 'read'
 
 def flush_pipes(_):
-	flush_depth = 300
-	for a in range(flush_depth):
-		parse_msg("flushing the pipes: " + str(flush_depth - a))
-	parse_msg("the pipes are clean!")
+        flush_depth = 300
+        for a in range(flush_depth):
+                parse_msg("flushing the pipes: " + str(flush_depth - a))
+        parse_msg("the pipes are clean!")
 
 CMDS = {
         '\\set': set_header,
         '\\room': switch_room,
         '\\read': enter_read_mode,
-	'\\flush': flush_pipes
+        '\\flush': flush_pipes
         }
 def parse_msg(msg):
         if ' ' in msg:
@@ -73,7 +110,9 @@ def parse_msg(msg):
         if cmd in CMDS:
                 CMDS[cmd](arg)
         else:
-                msg = b64encode(bytes(msg, encoding = 'UTF-8'))
+                msg = str(cipher.encrypt(msg))
+                msg = base64.b64encode(bytes(msg, encoding = 'UTF-8'))
+                
                 payload = HEADERS.copy()
                 payload['msg'] = msg.decode('utf-8')
                 requests.post("http://waksmemes.x10host.com/mess/?" + ROOM + '!post',
@@ -114,7 +153,11 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                 last_id = d['id']
                 name = d.get('name', d['ip'])
                 name_color = d.get('color', DEFAULT_NAME_COLOR)
-                msg = b64decode(d.get('msg', '')).decode('utf-8')
+
+                msg = base64.b64decode(d.get('msg', '')).decode('utf-8')
+
+                msg = cipher.decrypt(msg)
+
                 print(color(name + ': ', name_color) + color(msg, TEXT_COLOR))
         return last_id
 
