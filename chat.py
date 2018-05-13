@@ -82,7 +82,7 @@ def parse_msg(msg):
 #Shell=======================================
 def parse_shell_args():
         mode = 'chat'
-        room = "linusXD2"
+        room = "main"
         for arg in sys.argv[1:]:
                 if arg[0] == '-':
                         if arg == '-r':
