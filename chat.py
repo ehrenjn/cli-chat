@@ -123,7 +123,7 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
         for d in data:
                 last_id = d['id']
                 timestamp = d['time']
-                timestr = '[' + datetime.datetime.fromtimestamp(1526242452, 
+                timestr = '[' + datetime.datetime.fromtimestamp(timestamp, 
                         tz = pytz.timezone('US/Eastern')).strftime("%H:%M:%S") + '] '
                 settings = {}
                 if 'settings' in d:
