@@ -7,6 +7,8 @@ import os
 from base64 import b64encode, b64decode
 import json
 import time
+import datetime
+import pytz
 
 #Colors======================================
 COLORS = {
@@ -28,7 +30,7 @@ def color(string, color_string):
 #User Settings===============================
 CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.cli_chat_config')
 
-def get_headers():
+def get_settings():
         try:
                 with open(CONFIG_FILE) as f:
                         return json.loads(f.read())
@@ -36,13 +38,13 @@ def get_headers():
                 print("No user configs found")
                 return {}
         
-HEADERS = get_headers() #TURN THIS INTO A CLASS
+SETTINGS = get_settings() #TURN THIS INTO A CLASS
 
-def set_header(param_str):
-        header, val = param_str.split(' ', 1)
-        HEADERS[header] = val
+def set_setting(param_str):
+        setting, val = param_str.split(' ', 1)
+        SETTINGS[setting] = val
         with open(CONFIG_FILE, 'w') as f:
-                f.write(json.dumps(HEADERS))
+                f.write(json.dumps(SETTINGS))
 
 #Commands====================================
 def switch_room(new_room):
@@ -54,10 +56,12 @@ def enter_read_mode(_):
         MODE = 'read'
 
 CMDS = {
-        '\\set': set_header,
+        '\\set': set_setting,
         '\\room': switch_room,
         '\\read': enter_read_mode
         }
+
+#Parsing==============================
 def parse_msg(msg):
         if ' ' in msg:
                 cmd, arg = msg.split(' ', 1)
@@ -67,12 +71,25 @@ def parse_msg(msg):
                 CMDS[cmd](arg)
         else:
                 msg = b64encode(bytes(msg, encoding = 'UTF-8'))
-                payload = HEADERS.copy()
-                payload['msg'] = msg.decode('utf-8')
+                settings = b64encode(bytes(json.dumps(SETTINGS), encoding = 'UTF-8'))
+                payload = {
+                        'msg': msg.decode('utf-8'),
+                        'settings': settings.decode('utf-8')
+                        }
                 requests.post("http://waksmemes.x10host.com/mess/?" + ROOM + '!post',
                                 json = payload)
+'''
+#might come in handy later, not sure if it's needed yet
+def errorless_print(string):
+    try:
+        print(string)
+    except UnicodeEncodeError:
+        try: #try to print 0th plane chars
+            print(''.join(s for s in string if ord(s) < 65536))
+        except UnicodeEncodeError: #if that's broken just print ascii chars
+            print(string.encode('ascii', errors = 'ignore').decode('ascii'))
+'''
 
-#Shell=======================================
 def parse_shell_args():
         mode = 'chat'
         room = "linusXD2"
@@ -89,7 +106,7 @@ def clear_screen():
         os.system('cls') if sys.platform[:3] == 'win' else os.system('clear')
 
 if sys.version_info[0] < 3:
-        bytes = lambda s, encoding: s
+        bytes = lambda s, encoding: s.encode('utf-8') #so that you can't send malformed unicode
         input = raw_input
 
 
@@ -105,10 +122,17 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
         last_id = ids_after
         for d in data:
                 last_id = d['id']
-                name = d.get('name', d['ip'])
-                name_color = d.get('color', DEFAULT_NAME_COLOR)
+                timestamp = d['time']
+                timestr = '[' + datetime.datetime.fromtimestamp(1526242452, 
+                        tz = pytz.timezone('US/Eastern')).strftime("%H:%M:%S") + '] '
+                settings = {}
+                if 'settings' in d:
+                    raw_settings = b64decode(d['settings']).decode('utf-8')
+                    settings = json.loads(raw_settings)
+                name = settings.get('name', d['ip'])
+                name_color = settings.get('color', DEFAULT_NAME_COLOR)
                 msg = b64decode(d.get('msg', '')).decode('utf-8')
-                print(color(name + ': ', name_color) + color(msg, TEXT_COLOR))
+                print(timestr + color(name + ': ', name_color) + color(msg, TEXT_COLOR))
         return last_id
 
 
@@ -124,3 +148,5 @@ while 1:
         else:
                 LAST_ID = fetch_and_print(False, LAST_ID)
                 time.sleep(0.5)
+
+#IF EVERYTHING BREAKS: HEAD ON OVER TO THE disaster ROOM
