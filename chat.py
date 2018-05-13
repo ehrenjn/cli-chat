@@ -53,10 +53,17 @@ def enter_read_mode(_):
         global MODE
         MODE = 'read'
 
+def flush_pipes(_):
+	flush_depth = 300
+	for a in range(flush_depth):
+		parse_msg("flushing the pipes: " + str(flush_depth - a))
+	parse_msg("the pipes are clean!")
+
 CMDS = {
         '\\set': set_header,
         '\\room': switch_room,
-        '\\read': enter_read_mode
+        '\\read': enter_read_mode,
+	'\\flush': flush_pipes
         }
 def parse_msg(msg):
         if ' ' in msg:
