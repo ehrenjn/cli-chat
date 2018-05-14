@@ -19,8 +19,9 @@ COLORS = {
         'cyan': "\x1b[1;36m"
         }
 STOP_COLOR = "\x1b[0m"
-DEFAULT_NAME_COLOR = STOP_COLOR
-TEXT_COLOR = "\x1b[3;2m"
+DEFAULT_NAME_COLOR = "\x1b[1;37m"
+TEXT_COLOR = "\x1b[3;38;2;230;230;230m"
+TIME_COLOR = "\x1b[38;2;160;160;160m"
 def color(string, color_string):
         if color_string[0] != '\x1b':
                 color_string = COLORS.get(color_string, STOP_COLOR)
@@ -130,7 +131,7 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                 name = settings.get('name', d['ip'])
                 name_color = settings.get('color', DEFAULT_NAME_COLOR)
                 msg = b64decode(d.get('msg', '')).decode('utf-8')
-                print(timestr + color(name + ': ', name_color) + color(msg, TEXT_COLOR))
+                print(color(timestr, TIME_COLOR) + color(name + ': ', name_color) + color(msg, TEXT_COLOR))
         return last_id
 
 
