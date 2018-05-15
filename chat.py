@@ -42,9 +42,6 @@ class AESCipher(object):
     def _unpad(s):
         return s[:-ord(s[len(s)-1:])]
 
-key = ""
-cipher = AESCipher(key)
-
 #Colors======================================
 COLORS = {
         'red': "\x1b[1;31m",
@@ -165,6 +162,7 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
         raw = res.content.decode('utf-8')
         data = json.loads(raw)
         data.reverse()
+
         if clear:
                 clear_screen()
         last_id = ids_after
@@ -180,11 +178,6 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                 name_color = settings.get('color', DEFAULT_NAME_COLOR)
                 msg = b64decode(d.get('msg', '')).decode('utf-8')
 
-                global key
-                global cipher
-                key = settings.get('key', '')
-                cipher = AESCipher(key)
-
                 #=======
                 if msg[:4] == 'enc:':
                         msg = msg[4:]
@@ -194,6 +187,11 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                 #=======
                 print(timestr + color(name + ': ', name_color) + color(msg, TEXT_COLOR))
         return last_id
+
+global key
+global cipher
+key = input('passcode: ')
+cipher = AESCipher(key)
 
 
 ROOM, MODE = parse_shell_args()
