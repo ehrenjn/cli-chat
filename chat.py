@@ -112,6 +112,11 @@ def parse_msg(msg):
         if cmd in CMDS:
                 CMDS[cmd](arg)
         else:
+                #==============
+                msg = cipher.encrypt(msg)
+                msg = str(msg, encoding = 'UTF-8')
+                msg = "enc:" + msg
+                #=============
                 msg = b64encode(bytes(msg, encoding = 'UTF-8'))
                 settings = b64encode(bytes(json.dumps(SETTINGS), encoding = 'UTF-8'))
                 payload = {
@@ -174,6 +179,10 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                 name = settings.get('name', d['ip'])
                 name_color = settings.get('color', DEFAULT_NAME_COLOR)
                 msg = b64decode(d.get('msg', '')).decode('utf-8')
+                #=======
+                msg = msg[4:]
+                msg = cipher.decrypt(str(msg))
+                #=======
                 print(timestr + color(name + ': ', name_color) + color(msg, TEXT_COLOR))
         return last_id
 
