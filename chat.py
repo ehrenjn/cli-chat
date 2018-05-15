@@ -42,7 +42,7 @@ class AESCipher(object):
     def _unpad(s):
         return s[:-ord(s[len(s)-1:])]
 
-key = "test_key"
+key = ""
 cipher = AESCipher(key)
 
 #Colors======================================
@@ -179,9 +179,18 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                 name = settings.get('name', d['ip'])
                 name_color = settings.get('color', DEFAULT_NAME_COLOR)
                 msg = b64decode(d.get('msg', '')).decode('utf-8')
+
+                global key
+                global cipher
+                key = settings.get('key', '')
+                cipher = AESCipher(key)
+
                 #=======
-                msg = msg[4:]
-                msg = cipher.decrypt(str(msg))
+                if msg[:4] == 'enc:':
+                        msg = msg[4:]
+                        msg = cipher.decrypt(str(msg))
+                else:
+                        msg = msg
                 #=======
                 print(timestr + color(name + ': ', name_color) + color(msg, TEXT_COLOR))
         return last_id
