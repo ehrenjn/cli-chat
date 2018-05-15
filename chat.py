@@ -4,10 +4,10 @@ import requests
 import sys
 import json
 import os
-import base64
-#from base64 import b64encode, b64decode
+from base64 import b64encode, b64decode
 import json
 import time
+import datetime
 
 import hashlib
 from Crypto import Random
@@ -27,10 +27,10 @@ class AESCipher(object):
         raw = self._pad(raw)
         iv = Random.new().read(AES.block_size)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return base64.b64encode(iv + cipher.encrypt(raw))
+        return b64encode(iv + cipher.encrypt(raw))
 
     def decrypt(self, enc):
-        enc = base64.b64decode(enc)
+        enc = b64decode(enc)
         iv = enc[:AES.block_size]
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
@@ -65,7 +65,7 @@ def color(string, color_string):
 #User Settings===============================
 CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.cli_chat_config')
 
-def get_headers():
+def get_settings():
         try:
                 with open(CONFIG_FILE) as f:
                         return json.loads(f.read())
@@ -73,13 +73,13 @@ def get_headers():
                 print("No user configs found")
                 return {}
         
-HEADERS = get_headers() #TURN THIS INTO A CLASS
+SETTINGS = get_settings() #TURN THIS INTO A CLASS
 
-def set_header(param_str):
-        header, val = param_str.split(' ', 1)
-        HEADERS[header] = val
+def set_setting(param_str):
+        setting, val = param_str.split(' ', 1)
+        SETTINGS[setting] = val
         with open(CONFIG_FILE, 'w') as f:
-                f.write(json.dumps(HEADERS))
+                f.write(json.dumps(SETTINGS))
 
 #Commands====================================
 def switch_room(new_room):
@@ -97,11 +97,13 @@ def flush_pipes(_):
         parse_msg("the pipes are clean!")
 
 CMDS = {
-        '\\set': set_header,
+        '\\set': set_setting,
         '\\room': switch_room,
         '\\read': enter_read_mode,
         '\\flush': flush_pipes
         }
+
+#Parsing==============================
 def parse_msg(msg):
         if ' ' in msg:
                 cmd, arg = msg.split(' ', 1)
@@ -110,18 +112,30 @@ def parse_msg(msg):
         if cmd in CMDS:
                 CMDS[cmd](arg)
         else:
-                msg = str(cipher.encrypt(msg))
-                msg = base64.b64encode(bytes(msg, encoding = 'UTF-8'))
-                
-                payload = HEADERS.copy()
-                payload['msg'] = msg.decode('utf-8')
+                msg = b64encode(bytes(msg, encoding = 'UTF-8'))
+                settings = b64encode(bytes(json.dumps(SETTINGS), encoding = 'UTF-8'))
+                payload = {
+                        'msg': msg.decode('utf-8'),
+                        'settings': settings.decode('utf-8')
+                        }
                 requests.post("http://waksmemes.x10host.com/mess/?" + ROOM + '!post',
                                 json = payload)
 
-#Shell=======================================
+'''
+#might come in handy later, not sure if it's needed yet
+def errorless_print(string):
+    try:
+        print(string)
+    except UnicodeEncodeError:
+        try: #try to print 0th plane chars
+            print(''.join(s for s in string if ord(s) < 65536))
+        except UnicodeEncodeError: #if that's broken just print ascii chars
+            print(string.encode('ascii', errors = 'ignore').decode('ascii'))
+'''
+
 def parse_shell_args():
         mode = 'chat'
-        room = "linusXD2"
+        room = "main"
         for arg in sys.argv[1:]:
                 if arg[0] == '-':
                         if arg == '-r':
@@ -135,7 +149,7 @@ def clear_screen():
         os.system('cls') if sys.platform[:3] == 'win' else os.system('clear')
 
 if sys.version_info[0] < 3:
-        bytes = lambda s, encoding: s
+        bytes = lambda s, encoding: s.encode('utf-8') #so that you can't send malformed unicode
         input = raw_input
 
 
@@ -151,14 +165,16 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
         last_id = ids_after
         for d in data:
                 last_id = d['id']
-                name = d.get('name', d['ip'])
-                name_color = d.get('color', DEFAULT_NAME_COLOR)
-
-                msg = base64.b64decode(d.get('msg', '')).decode('utf-8')
-
-                msg = cipher.decrypt(msg)
-
-                print(color(name + ': ', name_color) + color(msg, TEXT_COLOR))
+                timestamp = d['time']
+                timestr = '[' + datetime.datetime.fromtimestamp(timestamp).strftime("%H:%M") + '] '
+                settings = {}
+                if 'settings' in d:
+                    raw_settings = b64decode(d['settings']).decode('utf-8')
+                    settings = json.loads(raw_settings)
+                name = settings.get('name', d['ip'])
+                name_color = settings.get('color', DEFAULT_NAME_COLOR)
+                msg = b64decode(d.get('msg', '')).decode('utf-8')
+                print(timestr + color(name + ': ', name_color) + color(msg, TEXT_COLOR))
         return last_id
 
 
@@ -174,3 +190,5 @@ while 1:
         else:
                 LAST_ID = fetch_and_print(False, LAST_ID)
                 time.sleep(0.5)
+
+#IF EVERYTHING BREAKS: HEAD ON OVER TO THE disaster ROOM
