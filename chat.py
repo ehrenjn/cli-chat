@@ -23,7 +23,7 @@ DEFAULT_NAME_COLOR = "\x1b[1;37m"
 TEXT_COLOR = "\x1b[3;38;2;230;230;230m"
 TIME_COLOR = "\x1b[38;2;160;160;160m"
 def color(string, color_string):
-        if color_string[0] != '\x1b':
+        if color_string != '' and color_string[0] != '\x1b':
                 color_string = COLORS.get(color_string, STOP_COLOR)
         return color_string + string + STOP_COLOR
 
