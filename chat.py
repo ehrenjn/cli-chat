@@ -28,23 +28,37 @@ def color(string, color_string):
         return color_string + string + STOP_COLOR
 
 #User Settings===============================
-CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.cli_chat_config')
+class Settings:
 
-def get_settings():
-        try:
-                with open(CONFIG_FILE) as f:
-                        return json.loads(f.read())
-        except IOError:
-                print("No user configs found")
-                return {}
-        
-SETTINGS = get_settings() #TURN THIS INTO A CLASS
+        def __init__(self):
+                self._config_file = os.path.join(os.path.expanduser('~'), '.cli_chat_config')
+                try:
+                        with open(self._config_file) as f:
+                                all = json.loads(f.read())
+                        self._public, self._private = all['public'], all['private']
+                except IOError:
+                        print("No user configs found")
+                        self._public, self._private = {},{}
 
-def set_setting(param_str):
-        setting, val = param_str.split(' ', 1)
-        SETTINGS[setting] = val
-        with open(CONFIG_FILE, 'w') as f:
-                f.write(json.dumps(SETTINGS))
+        def all(self, setting_type):
+                return getattr(self, '_' + setting_type)
+
+        def public(self, setting):
+                return self._public[setting]
+
+        def private(self, setting):
+                return self._private[setting]
+
+        def set(self, setting, value, visibility = 'public'):
+                settings = self._public if visibility == 'public' else self._private
+                settings[setting] = value
+                with open(self._config_file, 'w') as f:
+                        f.write(self.to_json())
+
+        def to_json(self):
+                return json.dumps({'public':self._public, 'private': self._private})
+
+SETTINGS = Settings()
 
 #Commands====================================
 def switch_room(new_room):
@@ -55,8 +69,12 @@ def enter_read_mode(_):
         global MODE
         MODE = 'read'
 
+def set_public_setting(param_str):
+        setting, val = param_str.split(' ', 1)
+        SETTINGS.set(setting, val, 'public')
+
 CMDS = {
-        '\\set': set_setting,
+        '\\set': set_public_setting,
         '\\room': switch_room,
         '\\read': enter_read_mode
         }
@@ -71,7 +89,7 @@ def parse_msg(msg):
                 CMDS[cmd](arg)
         else:
                 msg = b64encode(bytes(msg, encoding = 'UTF-8'))
-                settings = b64encode(bytes(json.dumps(SETTINGS), encoding = 'UTF-8'))
+                settings = b64encode(bytes(json.dumps(SETTINGS.all('public')), encoding = 'UTF-8'))
                 payload = {
                         'msg': msg.decode('utf-8'),
                         'settings': settings.decode('utf-8')
