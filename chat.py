@@ -52,31 +52,46 @@ COLORS = {
         'cyan': "\x1b[1;36m"
         }
 STOP_COLOR = "\x1b[0m"
-DEFAULT_NAME_COLOR = STOP_COLOR
-TEXT_COLOR = "\x1b[3;2m"
+DEFAULT_NAME_COLOR = "\x1b[1;37m"
+TEXT_COLOR = "\x1b[3;38;2;230;230;230m"
+TIME_COLOR = "\x1b[38;2;160;160;160m"
 def color(string, color_string):
-        if color_string[0] != '\x1b':
+        if color_string != '' and color_string[0] != '\x1b':
                 color_string = COLORS.get(color_string, STOP_COLOR)
         return color_string + string + STOP_COLOR
 
 #User Settings===============================
-CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.cli_chat_config')
+class Settings:
 
-def get_settings():
-        try:
-                with open(CONFIG_FILE) as f:
-                        return json.loads(f.read())
-        except IOError:
-                print("No user configs found")
-                return {}
-        
-SETTINGS = get_settings() #TURN THIS INTO A CLASS
+        def __init__(self):
+                self._config_file = os.path.join(os.path.expanduser('~'), '.cli_chat_config')
+                try:
+                        with open(self._config_file) as f:
+                                all = json.loads(f.read())
+                        self._public, self._private = all['public'], all['private']
+                except IOError:
+                        print("No user configs found")
+                        self._public, self._private = {},{}
 
-def set_setting(param_str):
-        setting, val = param_str.split(' ', 1)
-        SETTINGS[setting] = val
-        with open(CONFIG_FILE, 'w') as f:
-                f.write(json.dumps(SETTINGS))
+        def all(self, setting_type):
+                return getattr(self, '_' + setting_type)
+
+        def public(self, setting):
+                return self._public[setting]
+
+        def private(self, setting):
+                return self._private[setting]
+
+        def set(self, setting, value, visibility = 'public'):
+                settings = self._public if visibility == 'public' else self._private
+                settings[setting] = value
+                with open(self._config_file, 'w') as f:
+                        f.write(self.to_json())
+
+        def to_json(self):
+                return json.dumps({'public':self._public, 'private': self._private})
+
+SETTINGS = Settings()
 
 #Commands====================================
 def switch_room(new_room):
@@ -90,18 +105,22 @@ def enter_read_mode(_):
 def flush_pipes(_):
         flush_depth = 300
         for a in range(flush_depth):
-                parse_msg("flushing the pipes: " + str(flush_depth - a))
-        parse_msg("the pipes are clean!")
+                parse_msg("flushing the pipes: " + str(flush_depth - a), key)
+        parse_msg("the pipes are clean!", key)
+
+def set_public_setting(param_str):
+        setting, val = param_str.split(' ', 1)
+        SETTINGS.set(setting, val, 'public')
 
 CMDS = {
-        '\\set': set_setting,
+        '\\set': set_public_setting,
         '\\room': switch_room,
         '\\read': enter_read_mode,
         '\\flush': flush_pipes
         }
 
 #Parsing==============================
-def parse_msg(msg):
+def parse_msg(msg, key):
         if ' ' in msg:
                 cmd, arg = msg.split(' ', 1)
         else:
@@ -109,13 +128,17 @@ def parse_msg(msg):
         if cmd in CMDS:
                 CMDS[cmd](arg)
         else:
+
                 #==============
-                msg = cipher.encrypt(msg)
-                msg = str(msg, encoding = 'UTF-8')
-                msg = "enc:" + msg
+                if key != '':
+                        cipher = AESCipher(key)
+                        msg = cipher.encrypt(msg)
+                        msg = str(msg, encoding = 'UTF-8')
+                        msg = "enc:" + msg
                 #=============
+
                 msg = b64encode(bytes(msg, encoding = 'UTF-8'))
-                settings = b64encode(bytes(json.dumps(SETTINGS), encoding = 'UTF-8'))
+                settings = b64encode(bytes(json.dumps(SETTINGS.all('public')), encoding = 'UTF-8'))
                 payload = {
                         'msg': msg.decode('utf-8'),
                         'settings': settings.decode('utf-8')
@@ -156,7 +179,7 @@ if sys.version_info[0] < 3:
 
 
 #Main========================================
-def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
+def fetch_and_print(clear, key, ids_after = 0, max_msgs = 100):
         res = requests.post("http://waksmemes.x10host.com/mess/?" + ROOM,
                            json = {'MAX_MSGS': max_msgs, 'id': {'min': ids_after + 1}})
         raw = res.content.decode('utf-8')
@@ -179,32 +202,30 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                 msg = b64decode(d.get('msg', '')).decode('utf-8')
 
                 #=======
-                if msg[:4] == 'enc:':
+                if (msg[:4] == 'enc:') and (key != ''):
                         msg = msg[4:]
+                        cipher = AESCipher(key)
                         msg = cipher.decrypt(str(msg))
                 else:
                         msg = msg
                 #=======
-                print(timestr + color(name + ': ', name_color) + color(msg, TEXT_COLOR))
+
+                print(color(timestr, TIME_COLOR) + color(name + ': ', name_color) + color(msg, TEXT_COLOR))
         return last_id
 
-global key
-global cipher
-key = input('passcode: ')
-cipher = AESCipher(key)
-
+key = input("passcode: ")
 
 ROOM, MODE = parse_shell_args()
 LAST_ID = 0
 clear_screen()
 while 1:
         if MODE == 'chat':
-                fetch_and_print(True)
+                fetch_and_print(True, key)
                 new_msg = input('> ')
                 if new_msg != '':
-                        parse_msg(new_msg)
+                        parse_msg(new_msg, key)
         else:
-                LAST_ID = fetch_and_print(False, LAST_ID)
+                LAST_ID = fetch_and_print(False, key, LAST_ID)
                 time.sleep(0.5)
 
 #IF EVERYTHING BREAKS: HEAD ON OVER TO THE disaster ROOM
