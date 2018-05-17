@@ -112,8 +112,8 @@ def enter_read_mode(_):
 def flush_pipes(_):
         flush_depth = 300
         for a in range(flush_depth):
-                send_msg("flushing the pipes: " + str(flush_depth - a), key)
-        send_msg("the pipes are clean!", key)
+                send_msg("flushing the pipes: " + str(flush_depth - a))
+        send_msg("the pipes are clean!")
 
 def set_public_setting(param_str):
         setting, val = param_str.split(' ', 1)
