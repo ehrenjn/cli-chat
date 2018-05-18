@@ -9,6 +9,46 @@ import json
 import time
 import datetime
 
+import hashlib
+from Crypto import Random
+from Crypto.Cipher import AES
+
+#AES crypto==================================
+
+class AESCipher(object):
+    # basic class to provide AES cryptography, shamelessly ripped from stack exchange:
+    # https://stackoverflow.com/questions/12524994/encrypt-decrypt-using-pycrypto-aes-256
+    
+    def __init__(self, key):
+        self.bs = 32
+        self.key = hashlib.sha256(key.encode()).digest()
+
+    def encrypt(self, raw):
+        raw = self._pad(raw)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return b64encode(iv + cipher.encrypt(raw))
+
+    def decrypt(self, enc):
+        enc = b64decode(enc)
+        iv = enc[:AES.block_size]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8', errors = 'ignore')
+
+    def _pad(self, s):
+        return s + (self.bs - len(s) % self.bs) * chr(self.bs - len(s) % self.bs)
+
+    @staticmethod
+    def _unpad(s):
+        return s[:-ord(s[len(s)-1:])]
+
+def get_key():
+    keys = SETTINGS.private('keys')
+    if keys is not None:
+        return keys.get(ROOM, None)
+    return None
+
+
 #Colors======================================
 COLORS = {
         'red': "\x1b[1;31m",
@@ -44,10 +84,10 @@ class Settings:
                 return getattr(self, '_' + setting_type)
 
         def public(self, setting):
-                return self._public[setting]
+                return self._public.get(setting, None)
 
         def private(self, setting):
-                return self._private[setting]
+                return self._private.get(setting, None)
 
         def set(self, setting, value, visibility = 'public'):
                 settings = self._public if visibility == 'public' else self._private
@@ -69,14 +109,38 @@ def enter_read_mode(_):
         global MODE
         MODE = 'read'
 
+def flush_pipes(times):
+        if times == '':
+            flush_depth = 300
+        else:
+            flush_depth = int(times)
+        for a in range(flush_depth):
+                send_msg("flushing the pipes: " + str(flush_depth - a))
+        send_msg("the pipes are clean!")
+
 def set_public_setting(param_str):
         setting, val = param_str.split(' ', 1)
         SETTINGS.set(setting, val, 'public')
 
+def set_key(new_key):
+        keys = SETTINGS.private('keys')
+        if keys is None:
+            keys = {}
+        if new_key == '':
+            new_key = None
+        keys[ROOM] = new_key
+        SETTINGS.set('keys', keys, 'private')
+
+def send_unencrypted(msg):
+    send_msg(msg)
+
 CMDS = {
         '\\set': set_public_setting,
         '\\room': switch_room,
-        '\\read': enter_read_mode
+        '\\read': enter_read_mode,
+        '\\flush': flush_pipes,
+        '\\key': set_key,
+        '\\nokey': send_unencrypted
         }
 
 #Parsing==============================
@@ -88,16 +152,15 @@ def parse_msg(msg):
         if cmd in CMDS:
                 CMDS[cmd](arg)
         else:
-                msg = b64encode(bytes(msg, encoding = 'UTF-8'))
-                settings = b64encode(bytes(json.dumps(SETTINGS.all('public')), encoding = 'UTF-8'))
-                payload = {
-                        'msg': msg.decode('utf-8'),
-                        'settings': settings.decode('utf-8')
-                        }
-                requests.post("http://waksmemes.x10host.com/mess/?" + ROOM + '!post',
-                                json = payload)
-'''
-#might come in handy later, not sure if it's needed yet
+                key = get_key()
+                if key is not None:
+                        cipher = AESCipher(key)
+                        msg = cipher.encrypt(msg)
+                        msg = msg.decode('UTF-8')
+                        send_msg(msg, True)
+                else:
+                        send_msg(msg)
+
 def errorless_print(string):
     try:
         print(string)
@@ -106,7 +169,6 @@ def errorless_print(string):
             print(''.join(s for s in string if ord(s) < 65536))
         except UnicodeEncodeError: #if that's broken just print ascii chars
             print(string.encode('ascii', errors = 'ignore').decode('ascii'))
-'''
 
 def parse_shell_args():
         mode = 'chat'
@@ -129,12 +191,25 @@ if sys.version_info[0] < 3:
 
 
 #Main========================================
+def send_msg(msg, encrypted = False):
+        msg = b64encode(bytes(msg, encoding = 'UTF-8'))
+        settings = b64encode(bytes(json.dumps(SETTINGS.all('public')), encoding = 'UTF-8'))
+        payload = {
+                'msg': msg.decode('utf-8'),
+                'settings': settings.decode('utf-8'),
+                'encrypted': encrypted
+                }
+        requests.post("http://waksmemes.x10host.com/mess/?" + ROOM + '!post',
+                        json = payload)
+
+
 def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
         res = requests.post("http://waksmemes.x10host.com/mess/?" + ROOM,
                            json = {'MAX_MSGS': max_msgs, 'id': {'min': ids_after + 1}})
         raw = res.content.decode('utf-8')
         data = json.loads(raw)
         data.reverse()
+
         if clear:
                 clear_screen()
         last_id = ids_after
@@ -148,8 +223,19 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                     settings = json.loads(raw_settings)
                 name = settings.get('name', d['ip'])
                 name_color = settings.get('color', DEFAULT_NAME_COLOR)
+                encrypted = d.get('encrypted', False)
                 msg = b64decode(d.get('msg', '')).decode('utf-8')
-                print(color(timestr, TIME_COLOR) + color(name + ': ', name_color) + color(msg, TEXT_COLOR))
+
+                colon_color = STOP_COLOR
+                if encrypted:
+                        colon_color = 'red'
+                        key = get_key()
+                        if key is not None:
+                                cipher = AESCipher(key)
+                                msg = cipher.decrypt(str(msg))
+
+                errorless_print(color(timestr, TIME_COLOR) + color(name, name_color) 
+                        + color(': ', colon_color) + color(msg, TEXT_COLOR))
         return last_id
 
 
