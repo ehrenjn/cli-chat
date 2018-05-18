@@ -43,9 +43,21 @@ Types of settings:
 | name        | Sets your name so you're no longer identified by your IP                                                     |
 | color       | Sets the color of your name. The only possible colors so far are red, green, purple, blue, yellow and cyan   |
 
+#### The key command
+key is used to encrypt your messages in the current room with a specified key. Any other users in the same room with the same key can decrypt the messages that you send with that key.  
+  
+Usage:  
+`\key secret_key`
+  
+Once you set your key you can switch to a different key by using the key command agian, however you can only save one key per room at any one time. Using the key command without specifying a key will remove your key for that room, causing all your messages to be unencrypted until you set a new key.  
+  
+Encrypted messages contain a red colon after the name of the sender instead of the usual white (or whatever your default terminal color is) colon. This is so that users can easily distinguish between encrypted and unencrypted messages.  
+  
 #### Other commands  
 
-|Command name | Args                | Explanation                                   | Example           |
-| ----------- |:-------------------:|:---------------------------------------------:|:------------------:
-| room        | (1) roomname        | Switches the room to roomname                 | \room other_room  |
-| read        | (0) No arguments    | Swithces into auto-reloading read-only mode   | \read             |
+|Command name | Args                | Explanation                                             | Example           |
+| ----------- |:-------------------:|:-------------------------------------------------------:|:------------------:
+| room        | (1) roomname        | Switches the room to _roomname_                         | \room other_room  |
+| read        | (0) No arguments    | Swithces into auto-reloading read-only mode             | \read             |
+| flush       | (1) m (optional)    | Spams the room with _m_ messages, Defaults to _m_ = 300 | \flush 100        |
+| nokey       | (1) message         | Sends _message_ with no encryption                      | \nokey hello world|
