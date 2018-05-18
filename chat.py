@@ -109,11 +109,14 @@ def enter_read_mode(_):
         global MODE
         MODE = 'read'
 
-def flush_pipes(_):
-        flush_depth = 300
+def flush_pipes(times):
+        if times == '':
+            flush_depth = 300
+        else:
+            flush_depth = int(times)
         for a in range(flush_depth):
-                send_msg("flushing the pipes: " + str(flush_depth - a), key)
-        send_msg("the pipes are clean!", key)
+                send_msg("flushing the pipes: " + str(flush_depth - a))
+        send_msg("the pipes are clean!")
 
 def set_public_setting(param_str):
         setting, val = param_str.split(' ', 1)
@@ -149,7 +152,6 @@ def parse_msg(msg):
         if cmd in CMDS:
                 CMDS[cmd](arg)
         else:
-                #==============
                 key = get_key()
                 if key is not None:
                         cipher = AESCipher(key)
@@ -158,10 +160,7 @@ def parse_msg(msg):
                         send_msg(msg, True)
                 else:
                         send_msg(msg)
-                #=============
 
-'''
-#might come in handy later, not sure if it's needed yet
 def errorless_print(string):
     try:
         print(string)
@@ -170,7 +169,6 @@ def errorless_print(string):
             print(''.join(s for s in string if ord(s) < 65536))
         except UnicodeEncodeError: #if that's broken just print ascii chars
             print(string.encode('ascii', errors = 'ignore').decode('ascii'))
-'''
 
 def parse_shell_args():
         mode = 'chat'
@@ -228,7 +226,6 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                 encrypted = d.get('encrypted', False)
                 msg = b64decode(d.get('msg', '')).decode('utf-8')
 
-                #=======
                 colon_color = STOP_COLOR
                 if encrypted:
                         colon_color = 'red'
@@ -236,9 +233,8 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
                         if key is not None:
                                 cipher = AESCipher(key)
                                 msg = cipher.decrypt(str(msg))
-                #=======
 
-                print(color(timestr, TIME_COLOR) + color(name, name_color) 
+                errorless_print(color(timestr, TIME_COLOR) + color(name, name_color) 
                         + color(': ', colon_color) + color(msg, TEXT_COLOR))
         return last_id
 
