@@ -2,7 +2,7 @@
 A simple command line chat program for linux and windows written in python  
 It runs on Window and Linux on both Python 2 and 3
 
-The messages are stored unencrypted on: http://waksmemes.x10host.com/mess/  
+The messages are stored on: http://waksmemes.x10host.com/mess/  
   
 ## Usage:  
 ### Entering chat rooms:  
