@@ -29,7 +29,7 @@ To start in auto-reloading read-only mode in a chat room called "different_chat_
 `python chat.py -r different_chat_room`
 
 ### Commands  
-Commands begin with a backslash (\\) and are issued on the input line in a similar fashion to shell commands. Commands can take any number of arguments.  
+Commands begin with a backslash (\) and are issued on the input line in a similar fashion to shell commands. Commands can take any number of arguments.  
 #### The set command
 set is used to configure your user settings. User settings are saved in a local configuration file that is automatically generated when the set command is used. These settings are sent along with every message you send so that other clients can use them.
   
