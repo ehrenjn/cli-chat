@@ -1,7 +1,8 @@
 # cli-chat
 A simple command line chat program for linux and windows written in python  
-It runs on Window and Linux on both Python 2 and 3
-
+It runs on Window and Linux on both Python 2 and 3  
+If you're on a Linux system running Python 3 you can use [rtx](https://github.com/ZakSN/rtx) instead; a multithreaded client with more configurability made by @ZakSN  
+  
 The messages are stored on: http://waksmemes.x10host.com/mess/  
   
 ## Usage:  
