@@ -245,21 +245,22 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
 		return last_id
 
 
-if AES is None:
-		print(color("WARNING: ", "red") + "pycrypto is not installed, you will only be able to send/recieve plaintext messages")
-		print("Press enter to continue")
-		input()
-ROOM, MODE = parse_shell_args()
-LAST_ID = 0
-clear_screen()
-while 1:
-		if MODE == 'chat':
-				fetch_and_print(True)
-				new_msg = input('> ')
-				if new_msg != '':
-						parse_msg(new_msg)
-		else:
-				LAST_ID = fetch_and_print(False, LAST_ID)
-				time.sleep(0.5)
+if __name__ == "__main__":
+		if AES is None:
+				print(color("WARNING: ", "red") + "pycrypto is not installed, you will only be able to send/recieve plaintext messages")
+				print("Press enter to continue")
+				input()
+		ROOM, MODE = parse_shell_args()
+		LAST_ID = 0
+		clear_screen()
+		while 1:
+				if MODE == 'chat':
+						fetch_and_print(True)
+						new_msg = input('> ')
+						if new_msg != '':
+								parse_msg(new_msg)
+				else:
+						LAST_ID = fetch_and_print(False, LAST_ID)
+						time.sleep(0.5)
 
 #IF EVERYTHING BREAKS: HEAD ON OVER TO THE disaster ROOM
