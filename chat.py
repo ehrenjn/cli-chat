@@ -39,7 +39,8 @@ class AESCipher(object):
 				return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8', errors = 'ignore')
 
 		def _pad(self, s):
-				return s + (self.bs - len(s) % self.bs) * chr(self.bs - len(s) % self.bs)
+				pad_amt = self.bs - len(s) % self.bs
+				return s.decode("utf-8") + pad_amt * chr(pad_amt)
 
 		@staticmethod
 		def _unpad(s):
