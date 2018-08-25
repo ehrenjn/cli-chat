@@ -158,7 +158,7 @@ def parse_msg(msg):
 				key = get_key()
 				if key is not None and AES is not None:
 						cipher = AESCipher(key)
-						msg = cipher.encrypt(msg)
+						msg = cipher.encrypt(bytes(msg, encoding = 'UTF-8'))
 						msg = msg.decode('UTF-8')
 						send_msg(msg, True)
 				else:
