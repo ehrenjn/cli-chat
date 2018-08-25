@@ -194,8 +194,7 @@ if sys.version_info[0] < 3:
 else:
 		from urllib import request as urllib
 
-
-#Main========================================
+#Network=====================================
 def send_msg(msg, encrypted = False):
 		msg = b64encode(bytes(msg, encoding = 'UTF-8'))
 		settings = b64encode(bytes(json.dumps(SETTINGS.all('public')), encoding = 'UTF-8'))
@@ -207,18 +206,19 @@ def send_msg(msg, encrypted = False):
 		urllib.urlopen("http://waksmemes.x10host.com/mess/?" + ROOM + '!post',
 						bytes(json.dumps(payload), encoding = 'UTF-8'))
 
-
-def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
-		payload = {'MAX_MSGS': max_msgs, 'id': {'min': ids_after + 1}}
+def fetch_msgs(min_id = 1, max_msgs = 100):
+		payload = {'MAX_MSGS': max_msgs, 'id': {'min': min_id}}
 		res = urllib.urlopen("http://waksmemes.x10host.com/mess/?" + ROOM,
 							bytes(json.dumps(payload), encoding = 'UTF-8'))
 		raw = res.read().decode('utf-8')
 		data = json.loads(raw)
 		data.reverse()
+		return data
 
+#Main========================================
+def print_msgs(data, clear):
 		if clear:
 				clear_screen()
-		last_id = ids_after
 		for d in data:
 				last_id = d['id']
 				timestamp = d['time']
@@ -231,7 +231,6 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
 				name_color = settings.get('color', DEFAULT_NAME_COLOR)
 				encrypted = d.get('encrypted', False)
 				msg = b64decode(d.get('msg', '')).decode('utf-8')
-
 				colon_color = STOP_COLOR
 				if encrypted:
 						colon_color = 'red'
@@ -239,10 +238,8 @@ def fetch_and_print(clear, ids_after = 0, max_msgs = 100):
 						if key is not None and AES is not None:
 								cipher = AESCipher(key)
 								msg = cipher.decrypt(str(msg))
-
 				errorless_print(color(timestr, TIME_COLOR) + color(name, name_color) 
 						+ color(': ', colon_color) + color(msg, TEXT_COLOR))
-		return last_id
 
 
 if __name__ == "__main__":
@@ -255,12 +252,17 @@ if __name__ == "__main__":
 		clear_screen()
 		while 1:
 				if MODE == 'chat':
-						fetch_and_print(True)
+						print_msgs(fetch_msgs(), True)
 						new_msg = input('> ')
 						if new_msg != '':
 								parse_msg(new_msg)
 				else:
-						LAST_ID = fetch_and_print(False, LAST_ID)
+						msg_data = fetch_msgs(LAST_ID + 1)
+						if len(msg_data) > 0:
+								print_msgs(msg_data, False)
+								LAST_ID = msg_data[-1]['id']
 						time.sleep(0.5)
+else:
+		ROOM, MODE, LAST_ID = 'main', 'chat', 0
 
 #IF EVERYTHING BREAKS: HEAD ON OVER TO THE disaster ROOM
